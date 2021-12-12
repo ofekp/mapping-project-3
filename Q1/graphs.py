@@ -81,14 +81,14 @@ def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles)
     ax.plot(trueTrajectory[:, 0], trueTrajectory[:, 1])
     ax.plot(measured_trajectory[:, 0], measured_trajectory[:, 1], color='r')
     ax.scatter(trueLandmarks[:, 0], trueLandmarks[:, 1], s=80, facecolors='none', edgecolors='b')
-    ax.scatter(particles[:, 0], particles[:, 1], s=10, facecolors='none', edgecolors='g', alpha=0.5)
+    ax.scatter(particles[:, 0], particles[:, 1], s=10, facecolors='none', edgecolors='g', alpha=0.1)
     for particle in particles:
         x = particle[0]
         y = particle[1]
         heading_line_len = 0.5
         endx = particle[0] + heading_line_len * np.cos(particle[2])
         endy = particle[1] + heading_line_len * np.sin(particle[2])
-        ax.plot([x, endx], [y, endy], color='g', alpha=0.2)
+        ax.plot([x, endx], [y, endy], color='g', alpha=0.1)
     ax.grid()
     ax.set_title('Q1 - Ground trues trajectory and landmarks and noisy trajectory')
     ax.set_aspect('equal', adjustable='box')

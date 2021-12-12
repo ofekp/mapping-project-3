@@ -44,8 +44,8 @@ def main():
 
     """ Generate measurement odometry """
     sigma_r1 = 0.01
-    sigma_t =  0.1
-    sigma_r2 =  0.01
+    sigma_t = 0.1
+    sigma_r2 = 0.01
     measurmentOdometry = dict()
     measured_trajectory = np.zeros((trueOdometry.__len__() + 1, 3))
     for i, timestamp in enumerate(range(trueOdometry.__len__())):
@@ -80,8 +80,8 @@ def main():
         dist_xy = trueLandmarks[closest_landmark_id] - trueTrajectory[i + 1, 0:2]
         # r = np.linalg.norm(dist_xy) + np.random.normal(0, 1.0)
         r = np.linalg.norm(dist_xy)
-        # phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) + np.random.normal(0, 0.1))
-        phi = np.arctan2(dist_xy[1], dist_xy[0])
+        # phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2] + np.random.normal(0, 0.1))
+        phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2])
         Zt = np.array([r, phi])
         pf.apply(Zt, measurmentOdometry[timestamp])
         # if i % 10 == 0:

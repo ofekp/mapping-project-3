@@ -1,1 +1,2 @@
-pip install opencv-contrib-python
+pip uninstall opencv-contrib-python
+pip install opencv-python
