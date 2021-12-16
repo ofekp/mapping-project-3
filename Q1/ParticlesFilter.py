@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 class ParticlesFilter:
-    def __init__(self, worldLandmarks, sigma_r1, sigma_t, sigma_r2, numberOfPaticles=300):
+    def __init__(self, worldLandmarks, sigma_r1, sigma_t, sigma_r2, numberOfPaticles=1500):
 
         # Initialize parameters
         self.numberOfParticles = numberOfPaticles
@@ -23,7 +23,7 @@ class ParticlesFilter:
 
         # self.particles = np.array([[0, 0, 0.1], [0.5, 0.5, 0.3], [1.5, 1.5, 1.3]])
         self.weights = np.ones(self.numberOfParticles) * (1.0 / self.numberOfParticles)
-        # TODO(ofekp): I assumed below that it is 0,0,0.1, should probably take it from the trajecotry with the noise
+        # TODO(ofekp): I assumed below that it is 0,0,0.1, should probably take it from the trajectory with the noise
         self.history = np.array((0, 0, 0.1)).reshape(1, 3)
 
     def apply(self, Zt, Ut):
@@ -32,10 +32,10 @@ class ParticlesFilter:
         self.motionModel(Ut)
 
         # Observation model
-        self.Observation()
+        observations = self.Observation()
 
         # Observation model
-        self.weightParticles(Zt)
+        self.weightParticles(Zt, observations)
 
         self.history = np.concatenate((self.history, self.bestKParticles(1).reshape(1, 3)), axis=0)
 
@@ -45,32 +45,54 @@ class ParticlesFilter:
 
     # TODO(ofekp): continue - https://github.com/VincentChen95/Robot-Localization-with-Particle-Filter-and-Extend-Kalman-Filter/blob/master/pf.py#L23
     def motionModel(self, odometry):
-        dr1 = ParticlesFilter.normalize_angles_array(odometry['r1'] + np.random.normal(0, self.sigma_r1, (self.numberOfParticles, 1)))
-        dt = odometry['t'] + np.random.normal(0, self.sigma_t, (self.numberOfParticles, 1))
-        dr2 = ParticlesFilter.normalize_angles_array(odometry['r2'] + np.random.normal(0, self.sigma_r2, (self.numberOfParticles, 1)))
+        dr1 = odometry['r1'] + np.random.normal(0, self.sigma_r1, (self.numberOfParticles, 1))
+        dt  = odometry['t']  + np.random.normal(0, self.sigma_t,  (self.numberOfParticles, 1))
+        dr2 = odometry['r2'] + np.random.normal(0, self.sigma_r2, (self.numberOfParticles, 1))
+        # dr1 = ParticlesFilter.normalize_angles_array(odometry['r1'] + np.random.normal(0, self.sigma_r1 * np.sqrt(odometry['r1'] ** 2), (self.numberOfParticles, 1)))
+        # dt = odometry['t'] + np.random.normal(0, self.sigma_t * np.sqrt(odometry['t'] ** 2), (self.numberOfParticles, 1))
+        # dr2 = ParticlesFilter.normalize_angles_array(odometry['r2'] + np.random.normal(0, self.sigma_r2 * np.sqrt(odometry['r2'] ** 2), (self.numberOfParticles, 1)))
         theta = self.particles[:, 2].reshape(-1, 1)
         # TODO(ofekp): does each particle get its own random odometry movement, or do they all get the movement I randomized before
         dMotion = np.concatenate((
             dt * np.cos(theta + dr1),
             dt * np.sin(theta + dr1),
-            ParticlesFilter.normalize_angles_array(dr1 + dr2)), axis=1)
+            dr1 + dr2), axis=1)
         self.particles = self.particles + dMotion
         self.particles[:, 2] = ParticlesFilter.normalize_angles_array(self.particles[:, 2])
+        # for i, particle in enumerate(self.particles):
+        #     theta = particle[2]
+        #     # dr1 = ParticlesFilter.normalize_angle(odometry['r1'] + np.random.normal(0, 15.0 * self.sigma_r1 * np.sqrt(odometry['r1'] ** 2)))
+        #     # dt = odometry['t'] + np.random.normal(0, 15.0 * self.sigma_t * np.sqrt(odometry['t'] ** 2))
+        #     # dr2 = ParticlesFilter.normalize_angle(odometry['r2'] + np.random.normal(0, 15.0 * self.sigma_r2 * np.sqrt(odometry['r2'] ** 2)))
+        #     dr1 = ParticlesFilter.normalize_angle(odometry['r1'] + np.random.normal(0, self.sigma_r1))
+        #     dt = odometry['t'] + np.random.normal(0, self.sigma_t)
+        #     dr2 = ParticlesFilter.normalize_angle(odometry['r2'] + np.random.normal(0, self.sigma_r2))
+        #     # dr1 = odometry['r1']
+        #     # dt = odometry['t']
+        #     # dr2 = odometry['r2']
+        #     self.particles[i, 0] += dt * np.cos(theta + dr1)
+        #     self.particles[i, 1] += dt * np.sin(theta + dr1)
+        #     self.particles[i, 2] += dr1 + dr2
+        #     # particle[0] += dt * np.cos(theta + dr1) + np.random.normal(0, self.sigma_t)
+        #     # particle[1] += dt * np.sin(theta + dr1) + np.random.normal(0, self.sigma_t)
+        #     # particle[2] += dr1 + dr2 + np.random.normal(0, self.sigma_r1 + self.sigma_r2)
+        # self.particles[:, 2] = ParticlesFilter.normalize_angles_array(self.particles[:, 2])
+
 
     def Observation(self):
-        # TODO(ofekp): I am calculating this outside, is that ok?
-        pass
-
-    def weightParticles(self, worldMeasurment):
-        cov = np.diag([1.0, 0.1])
         observations = np.zeros((self.particles.shape[0], 2))  # range and bearing for each
         for i, particle in enumerate(self.particles):
-            closest_landmark_id = np.argmin(np.linalg.norm(self.worldLandmarks - particle[0:2], axis=1))
+            # closest_landmark_id = np.argmin(np.linalg.norm(self.worldLandmarks - particle[0:2], axis=1))
+            closest_landmark_id = np.argmin(np.sum((self.worldLandmarks - particle[0:2]) ** 2, axis=1))
             dist_xy = self.worldLandmarks[closest_landmark_id] - particle[0:2]
             r = np.linalg.norm(dist_xy)
             phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - particle[2])
             observations[i, 0] = r
             observations[i, 1] = phi
+        return observations
+
+    def weightParticles(self, worldMeasurment, observations):
+        cov = np.diag([1.0 ** 2, 0.1 ** 2])
         for i, observation in enumerate(observations):
             d = worldMeasurment - observation
             d[1] = ParticlesFilter.normalize_angle(d[1])

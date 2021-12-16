@@ -23,7 +23,7 @@ class VisualOdometry:
     def get_gt_trajectory(self):
         gt_trajectory = np.array([]).reshape(0, 2)
         for curr_gt_pose in self.vo_data.gt_poses:
-            gt_trajectory = np.concatenate((gt_trajectory, np.array([[curr_gt_pose[0, 3], curr_gt_pose[1, 3]]])), axis=0)
+            gt_trajectory = np.concatenate((gt_trajectory, np.array([[curr_gt_pose[0, 3], curr_gt_pose[2, 3]]])), axis=0)
         return gt_trajectory
 
     def calc_trajectory(self):
@@ -37,6 +37,9 @@ class VisualOdometry:
                 prev_img = curr_img
                 prev_gt_pose = curr_gt_pose
                 continue
+
+            # graphs.show_image(curr_img)
+            # graphs.show_graphs()
 
             # feature detection
             key_points_1, descriptors_1 = self.sift.detectAndCompute(prev_img, None)
@@ -60,11 +63,8 @@ class VisualOdometry:
             self.camera_translation = self.camera_translation + scale * self.camera_rotation.dot(t)
             self.camera_rotation = R.dot(self.camera_rotation)
 
-            # graphs.show_image(img)
-            # graphs.show_graphs()
-
-            gt_trajectory = np.concatenate((gt_trajectory, np.array([[curr_gt_pose[0, 3], curr_gt_pose[1, 3]]])), axis=0)
-            measured_trajectory = np.concatenate((measured_trajectory, np.array([[float(self.camera_translation[0]), float(self.camera_translation[1])]])), axis=0)
+            gt_trajectory = np.concatenate((gt_trajectory, np.array([[curr_gt_pose[0, 3], curr_gt_pose[2, 3]]])), axis=0)
+            measured_trajectory = np.concatenate((measured_trajectory, np.array([[float(self.camera_translation[0]), float(self.camera_translation[2])]])), axis=0)
 
             prev_img = curr_img
             prev_gt_pose = curr_gt_pose

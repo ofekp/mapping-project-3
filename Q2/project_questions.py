@@ -18,10 +18,12 @@ class ProjectQuestions:
         gt_trajectory, measured_trajectory = vo.calc_trajectory()
         graphs.plot_trajectory_comparison(gt_trajectory, measured_trajectory)
         graphs.show_graphs()
-        # gt_trajectory = vo.get_gt_trajectory()
-        # graphs.plot_gt_trajectory(gt_trajectory)
-        # graphs.show_graphs()
-    
+
+        # vo_data.make_mp4()
+        gt_trajectory = vo.get_gt_trajectory()
+        graphs.plot_gt_trajectory(gt_trajectory)
+        graphs.show_graphs()
+
     def run(self):
         self.Q2()
     

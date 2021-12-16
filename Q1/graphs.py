@@ -76,7 +76,7 @@ import matplotlib.pyplot as plt
 #     return anim
 
 
-def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles):
+def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles):  #, pos, closest_landmark, r, phi):
     fig, ax = plt.subplots()
     ax.plot(trueTrajectory[:, 0], trueTrajectory[:, 1])
     ax.plot(measured_trajectory[:, 0], measured_trajectory[:, 1], color='r')
@@ -89,6 +89,15 @@ def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles)
         endx = particle[0] + heading_line_len * np.cos(particle[2])
         endy = particle[1] + heading_line_len * np.sin(particle[2])
         ax.plot([x, endx], [y, endy], color='g', alpha=0.1)
+
+    # ax.scatter(pos[0], pos[1], s=10, facecolors='none', edgecolors='r')
+    # ax.scatter(closest_landmark[0], closest_landmark[1], s=60, facecolors='none', edgecolors='r')
+    # x = pos[0]
+    # y = pos[1]
+    # endx = pos[0] + r * np.cos(pos[2] + phi)
+    # endy = pos[1] + r * np.sin(pos[2] + phi)
+    # ax.plot([x, endx], [y, endy], color='r', alpha=0.5)
+
     ax.grid()
     ax.set_title('Q1 - Ground trues trajectory and landmarks and noisy trajectory')
     ax.set_aspect('equal', adjustable='box')

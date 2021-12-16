@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import math
 import graphs
 
-np.random.seed(12345)
+# np.random.seed(12345)
+# np.random.seed(17)
+np.random.seed(11)
 
 
 def main():
@@ -72,18 +74,19 @@ def main():
 
     """ Create ParticlesFilter object """
     pf = ParticlesFilter(trueLandmarks, sigma_r1, sigma_t, sigma_r2)
-    for i, timestamp in enumerate(range(measurmentOdometry.__len__() - 1)):
-        # graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles)
-        # graphs.show_graphs()
+    for i, timestamp in enumerate(range(trueOdometry.__len__() - 1)):
         # calculate Zt - the range and bearing to the closest landmark as seen from the current true position of the robot
-        closest_landmark_id = np.argmin(np.linalg.norm(trueLandmarks - trueTrajectory[i + 1, 0:2], axis=1))
+        # closest_landmark_id = np.argmin(np.linalg.norm(trueLandmarks - trueTrajectory[i + 1, 0:2], axis=1))
+        closest_landmark_id = np.argmin(np.sum((trueLandmarks - trueTrajectory[i + 1, 0:2]) ** 2, axis=1))
         dist_xy = trueLandmarks[closest_landmark_id] - trueTrajectory[i + 1, 0:2]
-        # r = np.linalg.norm(dist_xy) + np.random.normal(0, 1.0)
-        r = np.linalg.norm(dist_xy)
-        # phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2] + np.random.normal(0, 0.1))
-        phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2])
+        r = np.linalg.norm(dist_xy) + np.random.normal(0, 1.0)
+        # r = np.linalg.norm(dist_xy)
+        phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2] + np.random.normal(0, 0.1))
+        # phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2])
         Zt = np.array([r, phi])
-        pf.apply(Zt, measurmentOdometry[timestamp])
+        # graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles, trueTrajectory[i + 1], trueLandmarks[closest_landmark_id], r, phi)
+        # graphs.show_graphs()
+        pf.apply(Zt, trueOdometry[timestamp])
         # if i % 10 == 0:
         #     graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles)
         #     graphs.show_graphs()
