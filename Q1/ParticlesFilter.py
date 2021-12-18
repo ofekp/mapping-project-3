@@ -1,9 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import graphs
 
 
 class ParticlesFilter:
-    def __init__(self, worldLandmarks, sigma_r1, sigma_t, sigma_r2, numberOfPaticles=1500):
+    def __init__(self, worldLandmarks, sigma_r1, sigma_t, sigma_r2, sigma_range, sigma_bearing, numberOfPaticles=1000):
 
         # Initialize parameters
         self.numberOfParticles = numberOfPaticles
@@ -13,6 +13,9 @@ class ParticlesFilter:
         self.sigma_t = sigma_t
         self.sigma_r2 = sigma_r2
 
+        self.sigma_range = sigma_range
+        self.sigma_bearing = sigma_bearing
+
         # Initialize particles - x, y, heading, weight (uniform weight for initialization)
         # self.particles = np.concatenate((np.random.normal(0, np.sqrt(2.0), (self.numberOfParticles, 1)),
         #                                  np.random.normal(0, np.sqrt(2.0), (self.numberOfParticles, 1)),
@@ -20,16 +23,24 @@ class ParticlesFilter:
         self.particles = np.concatenate((np.random.normal(0, 2.0, (self.numberOfParticles, 1)),
                                          np.random.normal(0, 2.0, (self.numberOfParticles, 1)),
                                          ParticlesFilter.normalize_angles_array(np.random.normal(0.1, 0.1, (self.numberOfParticles, 1)))), axis=1)
+        # self.particles = np.concatenate((np.random.normal(0, 0.5, (self.numberOfParticles, 1)),
+        #                                  np.random.normal(0, 0.5, (self.numberOfParticles, 1)),
+        #                                  ParticlesFilter.normalize_angles_array(np.random.normal(0.1, 0.1, (self.numberOfParticles, 1)))), axis=1)
 
         # self.particles = np.array([[0, 0, 0.1], [0.5, 0.5, 0.3], [1.5, 1.5, 1.3]])
         self.weights = np.ones(self.numberOfParticles) * (1.0 / self.numberOfParticles)
         # TODO(ofekp): I assumed below that it is 0,0,0.1, should probably take it from the trajectory with the noise
         self.history = np.array((0, 0, 0.1)).reshape(1, 3)
+        self.particles_history = np.expand_dims(self.particles.copy(), axis=0)
+
 
     def apply(self, Zt, Ut):
 
         # Motion model based on odometry
         self.motionModel(Ut)
+
+        # graphs.draw_pf_frame(self.true_trajectory, self.history, self.true_landmarks, self.particles)
+        # graphs.show_graphs()
 
         # Observation model
         observations = self.Observation()
@@ -42,9 +53,14 @@ class ParticlesFilter:
         # Resample particles
         self.resampleParticles()
 
+        self.particles_history = np.concatenate((self.particles_history, np.expand_dims(self.particles.copy(), axis=0)), axis=0)
+
 
     # TODO(ofekp): continue - https://github.com/VincentChen95/Robot-Localization-with-Particle-Filter-and-Extend-Kalman-Filter/blob/master/pf.py#L23
     def motionModel(self, odometry):
+        # dr1 = odometry['r1']
+        # dt  = odometry['t']
+        # dr2 = odometry['r2']
         dr1 = odometry['r1'] + np.random.normal(0, self.sigma_r1, (self.numberOfParticles, 1))
         dt  = odometry['t']  + np.random.normal(0, self.sigma_t,  (self.numberOfParticles, 1))
         dr2 = odometry['r2'] + np.random.normal(0, self.sigma_r2, (self.numberOfParticles, 1))
@@ -78,7 +94,6 @@ class ParticlesFilter:
         #     # particle[2] += dr1 + dr2 + np.random.normal(0, self.sigma_r1 + self.sigma_r2)
         # self.particles[:, 2] = ParticlesFilter.normalize_angles_array(self.particles[:, 2])
 
-
     def Observation(self):
         observations = np.zeros((self.particles.shape[0], 2))  # range and bearing for each
         for i, particle in enumerate(self.particles):
@@ -91,15 +106,17 @@ class ParticlesFilter:
             observations[i, 1] = phi
         return observations
 
-    def weightParticles(self, worldMeasurment, observations):
-        cov = np.diag([1.0 ** 2, 0.1 ** 2])
+    def weightParticles(self, world_measurement, observations):
+        cov = np.diag([self.sigma_range ** 2, self.sigma_bearing ** 2])
+        # diff = observations - worldMeasurement
+        # cov = np.cov(diff.T)
         for i, observation in enumerate(observations):
-            d = worldMeasurment - observation
+            d = world_measurement - observation
             d[1] = ParticlesFilter.normalize_angle(d[1])
             self.weights[i] = np.exp(-0.5 * np.dot(d.T, np.dot(np.linalg.inv(cov), d))) / np.sqrt(np.linalg.det(2 * np.pi * cov))
             # self.weights[i] = np.sqrt(np.dot(np.dot(d.T, np.linalg.pinv(cov)), d))
         # self.weights = np.max(self.weights) - self.weights
-        self.weights += 1.0e-300  # for numerical stability
+        self.weights += 1.0e-200  # for numerical stability
         self.weights /= sum(self.weights)
 
     # TODO(ofekp): delete this method
