@@ -107,9 +107,10 @@ class ParticlesFilter:
         return observations
 
     def weightParticles(self, world_measurement, observations):
-        cov = np.diag([self.sigma_range ** 2, self.sigma_bearing ** 2])
-        # diff = observations - worldMeasurement
-        # cov = np.cov(diff.T)
+        # cov = np.diag([self.sigma_range ** 2, self.sigma_bearing ** 2])
+        # cov = np.diag([5.0, 0.5])
+        diff = world_measurement - observations
+        cov = np.cov(diff.T)
         for i, observation in enumerate(observations):
             d = world_measurement - observation
             d[1] = ParticlesFilter.normalize_angle(d[1])

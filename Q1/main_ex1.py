@@ -97,23 +97,24 @@ def main():
     sigma_bearing = 0.1
     num_particles_arr = [1, 10, 20, 30, 50, 100, 500, 1000, 10000]
     add_sensor_noise_arr = [True, False]
-    num_particles_arr = [100]
+    num_particles_arr = [1000]
     add_sensor_noise_arr = [True]
     mse_results = pd.DataFrame(np.array([[0] * len(num_particles_arr)] * len(add_sensor_noise_arr)),
                                columns=num_particles_arr, index=[str(s) for s in add_sensor_noise_arr])
     for add_sensor_noise, num_particles in itertools.product(add_sensor_noise_arr, num_particles_arr):
-        pf = ParticlesFilter(trueLandmarks, sigma_r1, sigma_t, sigma_r2, sigma_range, sigma_bearing)
+        pf = ParticlesFilter(trueLandmarks, sigma_r1, sigma_t, sigma_r2, sigma_range, sigma_bearing, numberOfPaticles=num_particles)
         for i, timestamp in enumerate(range(trueOdometry.__len__() - 1)):
             # calculate Zt - the range and bearing to the closest landmark as seen from the current true position of the robot
             # graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles)
             # graphs.show_graphs()
-            closest_landmark_id = np.argmin(np.sum((trueLandmarks - trueTrajectory[i + 1, 0:2]) ** 2, axis=1))
+            closest_landmark_id = np.argmin(np.linalg.norm((trueLandmarks - trueTrajectory[i + 1, 0:2]), axis=1))
             dist_xy = trueLandmarks[closest_landmark_id] - trueTrajectory[i + 1, 0:2]
             r = np.linalg.norm(dist_xy)
-            phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2])
+            phi = np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2]
             if add_sensor_noise:
                 r += np.random.normal(0, sigma_range)
                 phi += np.random.normal(0, sigma_bearing)
+            phi = ParticlesFilter.normalize_angle(phi)
             # phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - trueTrajectory[i + 1, 2])
             Zt = np.array([r, phi])
             # graphs.draw_pf_frame_with_closes_landmark(trueTrajectory, pf.history, trueLandmarks, pf.particles, trueTrajectory[i + 1], trueLandmarks[closest_landmark_id], r, phi)
@@ -121,11 +122,11 @@ def main():
             pf.apply(Zt, trueOdometry[timestamp])
         title = "pf_estimation_{}_{}_particles".format("with_sensor_noise" if add_sensor_noise else "without_sensor_noise", num_particles)
         graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles)
+        # graphs.show_graphs("../../../Results/Particle Filter/", title)
         graphs.show_graphs()
         title = "pf_animation_{}_{}".format("with_sensor_noise" if add_sensor_noise else "without_sensor_noise", num_particles)
         anim = graphs.build_animation(trueTrajectory, pf.history, trueLandmarks, pf.particles_history, title, "x [meters]", "y [meters]", "Ground truth trajectory", "Particle filter estimated trajectory", "Landmarks", "Particles and their heading")
         graphs.save_animation(anim, "../../../Results/Particle Filter/", title)
-        # graphs.show_graphs("../../../Results/Particle Filter/", title)
         mse_results.loc[str(add_sensor_noise), num_particles] = (calculate_mse(trueTrajectory, pf.history))
     print(mse_results)
     graphs.draw_table(mse_results)

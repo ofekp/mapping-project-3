@@ -15,14 +15,19 @@ class ProjectQuestions:
     def Q2(self):
         vo_data = DataLoader(self.vo_data)
         vo = VisualOdometry(vo_data)
-        gt_trajectory, measured_trajectory = vo.calc_trajectory()
+        gt_trajectory, measured_trajectory, key_points_history = vo.calc_trajectory()
         graphs.plot_trajectory_comparison(gt_trajectory, measured_trajectory)
-        graphs.show_graphs()
+        graphs.show_graphs("../../../Results/Visual Odometry/", "vo_gt_trajectory_estimated_trajectory")
+        title = "Visual Odometry Predicted Trajectory"
+        anim = graphs.build_animation(gt_trajectory, measured_trajectory, key_points_history, vo_data,
+                                      title, "East [meters]", "North [meters]", "Ground truth trajectory",
+                                      "Estimated trajectory with visual odometry")
+        graphs.save_animation(anim, "../../../Results/Visual Odometry/", "vo_animation")
 
-        # vo_data.make_mp4()
-        gt_trajectory = vo.get_gt_trajectory()
-        graphs.plot_gt_trajectory(gt_trajectory)
-        graphs.show_graphs()
+        # # vo_data.make_mp4()
+        # gt_trajectory = vo.get_gt_trajectory()
+        # graphs.plot_gt_trajectory(gt_trajectory)
+        # graphs.show_graphs()
 
     def run(self):
         self.Q2()

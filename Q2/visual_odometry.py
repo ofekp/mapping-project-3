@@ -29,6 +29,7 @@ class VisualOdometry:
     def calc_trajectory(self):
         gt_trajectory = np.array([]).reshape(0, 2)
         measured_trajectory = np.array([]).reshape(0, 2)
+        key_points_history = []
         prev_img = None
         prev_gt_pose = None
         i = 0
@@ -54,6 +55,8 @@ class VisualOdometry:
                 point = key_points_2[match.trainIdx]
                 curr_points = np.concatenate((curr_points, np.array([[point.pt[0], point.pt[1]]])), axis=0)
 
+            key_points_history.append(curr_points)
+
             E, _ = cv2.findEssentialMat(curr_points, prev_points, self.vo_data.cam.intrinsics, cv2.RANSAC, 0.99, 1.0, None)
             _, R, t, _ = cv2.recoverPose(E, curr_points, prev_points, self.vo_data.cam.intrinsics)
 
@@ -61,7 +64,8 @@ class VisualOdometry:
             scale = np.linalg.norm(prev_gt_pose[:, 3] - curr_gt_pose[:, 3])
 
             self.camera_translation = self.camera_translation + scale * self.camera_rotation.dot(t)
-            self.camera_rotation = R.dot(self.camera_rotation)
+            # self.camera_rotation = R.dot(self.camera_rotation)
+            self.camera_rotation = self.camera_rotation.dot(R)
 
             gt_trajectory = np.concatenate((gt_trajectory, np.array([[curr_gt_pose[0, 3], curr_gt_pose[2, 3]]])), axis=0)
             measured_trajectory = np.concatenate((measured_trajectory, np.array([[float(self.camera_translation[0]), float(self.camera_translation[2])]])), axis=0)
@@ -73,6 +77,6 @@ class VisualOdometry:
             if i % 50 == 0:
                 print(f"Frame {i}")
 
-        return gt_trajectory, measured_trajectory
+        return gt_trajectory, measured_trajectory, key_points_history
 
 
