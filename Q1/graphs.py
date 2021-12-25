@@ -104,7 +104,14 @@ def draw_table(df):
     fig, ax = plt.subplots()
     ax.set_frame_on(False)
     ax.axis('off')
-    table(ax, df, loc='center', cellLoc='center')
+    t = table(ax, df, loc='center', cellLoc='center', colWidths=[0.08] * len(df.columns))
+    # cellDict = t.get_celld()
+    # for i in range(len(df.columns)):
+    #     cellDict[(0, i)].set_height(.02)
+    #     for j in range(1, len(df) + 1):
+    #         cellDict[(j, i)].set_height(.02)
+    t.scale(1, 1)
+    t.set_fontsize(25)
 
 
 def draw_pf_frame_with_closes_landmark(trueTrajectory, measured_trajectory, trueLandmarks, particles, pos, closest_landmark, r, phi):
@@ -141,7 +148,7 @@ def draw_pf_frame_with_closes_landmark(trueTrajectory, measured_trajectory, true
     ax.legend(['Ground Truth', 'Landmarks'], prop={"size": 20}, loc="best")
 
 
-def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles):  #, pos, closest_landmark, r, phi):
+def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles, title):  #, pos, closest_landmark, r, phi):
     fig, ax = plt.subplots()
     ax.plot(trueTrajectory[:, 0], trueTrajectory[:, 1])
     ax.scatter(trueLandmarks[:, 0], trueLandmarks[:, 1], s=80, facecolors='none', edgecolors='b')
@@ -159,7 +166,7 @@ def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles)
     ax.plot(measured_trajectory[:, 0], measured_trajectory[:, 1], color='r')
 
     ax.grid()
-    ax.set_title('Q1 - Ground trues trajectory and landmarks and noisy trajectory')
+    ax.set_title(title, fontsize=20)
     ax.set_aspect('equal', adjustable='box')
     ax.set_xlabel("X [m]", fontsize=20)
     ax.set_ylabel("Y [m]", fontsize=20)

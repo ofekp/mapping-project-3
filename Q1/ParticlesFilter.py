@@ -29,10 +29,8 @@ class ParticlesFilter:
 
         # self.particles = np.array([[0, 0, 0.1], [0.5, 0.5, 0.3], [1.5, 1.5, 1.3]])
         self.weights = np.ones(self.numberOfParticles) * (1.0 / self.numberOfParticles)
-        # TODO(ofekp): I assumed below that it is 0,0,0.1, should probably take it from the trajectory with the noise
         self.history = np.array((0, 0, 0.1)).reshape(1, 3)
         self.particles_history = np.expand_dims(self.particles.copy(), axis=0)
-
 
     def apply(self, Zt, Ut):
 
@@ -55,8 +53,6 @@ class ParticlesFilter:
 
         self.particles_history = np.concatenate((self.particles_history, np.expand_dims(self.particles.copy(), axis=0)), axis=0)
 
-
-    # TODO(ofekp): continue - https://github.com/VincentChen95/Robot-Localization-with-Particle-Filter-and-Extend-Kalman-Filter/blob/master/pf.py#L23
     def motionModel(self, odometry):
         # dr1 = odometry['r1']
         # dt  = odometry['t']
@@ -68,7 +64,6 @@ class ParticlesFilter:
         # dt = odometry['t'] + np.random.normal(0, self.sigma_t * np.sqrt(odometry['t'] ** 2), (self.numberOfParticles, 1))
         # dr2 = ParticlesFilter.normalize_angles_array(odometry['r2'] + np.random.normal(0, self.sigma_r2 * np.sqrt(odometry['r2'] ** 2), (self.numberOfParticles, 1)))
         theta = self.particles[:, 2].reshape(-1, 1)
-        # TODO(ofekp): does each particle get its own random odometry movement, or do they all get the movement I randomized before
         dMotion = np.concatenate((
             dt * np.cos(theta + dr1),
             dt * np.sin(theta + dr1),
@@ -95,6 +90,12 @@ class ParticlesFilter:
         # self.particles[:, 2] = ParticlesFilter.normalize_angles_array(self.particles[:, 2])
 
     def Observation(self):
+        """
+        Calculates the sensor measurement from the perspective of each of the particles
+        returns: an array of size (number of particles x 2)
+                 the first coord is the range to the closest landmark and the second coord is the bearing to it in radians
+                 the bearing and range are added with gaussian noise with STD of 1.0 and 0.1 respectively
+        """
         observations = np.zeros((self.particles.shape[0], 2))  # range and bearing for each
         for i, particle in enumerate(self.particles):
             # closest_landmark_id = np.argmin(np.linalg.norm(self.worldLandmarks - particle[0:2], axis=1))
@@ -104,13 +105,15 @@ class ParticlesFilter:
             phi = ParticlesFilter.normalize_angle(np.arctan2(dist_xy[1], dist_xy[0]) - particle[2])
             observations[i, 0] = r
             observations[i, 1] = phi
+            r += np.random.normal(0, self.sigma_range)
+            phi += np.random.normal(0, self.sigma_bearing)
         return observations
 
     def weightParticles(self, world_measurement, observations):
-        # cov = np.diag([self.sigma_range ** 2, self.sigma_bearing ** 2])
+        cov = np.diag([self.sigma_range ** 2, self.sigma_bearing ** 2])
         # cov = np.diag([5.0, 0.5])
-        diff = world_measurement - observations
-        cov = np.cov(diff.T)
+        # diff = world_measurement - observations
+        # cov = np.cov(diff.T)
         for i, observation in enumerate(observations):
             d = world_measurement - observation
             d[1] = ParticlesFilter.normalize_angle(d[1])
@@ -120,26 +123,10 @@ class ParticlesFilter:
         self.weights += 1.0e-200  # for numerical stability
         self.weights /= sum(self.weights)
 
-    # TODO(ofekp): delete this method
-    # def resampleParticles(self):
-    #     N = len(self.weights)
-    #
-    #     positions = (np.arange(N) + np.random.uniform()) / N
-    #
-    #     indexes = np.zeros(N, dtype=int)
-    #     cumulative_sum = np.cumsum(self.weights)
-    #     i, j = 0, 0
-    #     while i < N:
-    #         if positions[i] < cumulative_sum[j]:
-    #             indexes[i] = j
-    #             i += 1
-    #         else:
-    #             j += 1
-    #     self.particles[:] = self.particles[indexes]
-    #     self.weights.resize(len(self.particles))
-    #     self.weights.fill(1.0 / len(self.weights))
-
     def resampleParticles(self):
+        """
+        law variance resampling
+        """
         N = len(self.weights)
         r = np.random.uniform(0.0, 1 / N)
         c = self.weights[0]
@@ -159,22 +146,36 @@ class ParticlesFilter:
 
     @staticmethod
     def normalize_angle(angle):
-        if -np.pi < angle <= np.pi:
-            return angle
-        if angle > np.pi:
-            angle = angle - 2 * np.pi
-        if angle <= -np.pi:
-            angle = angle + 2 * np.pi
-        return ParticlesFilter.normalize_angle(angle)
+        """
+        Normalize an angle to the range [-pi, pi]
+        """
+        while angle < -np.pi:
+            angle += 2 * np.pi
+        while angle >= np.pi:
+            angle -= 2 * np.pi
+        return angle
+        # if -np.pi < angle <= np.pi:
+        #     return angle
+        # if angle > np.pi:
+        #     angle = angle - 2 * np.pi
+        # if angle <= -np.pi:
+        #     angle = angle + 2 * np.pi
+        # return ParticlesFilter.normalize_angle(angle)
 
     @staticmethod
     def normalize_angles_array(angles):
+        """
+        applies normalize_angle on an array of angles
+        """
         z = np.zeros_like(angles)
         for i in range(angles.shape[0]):
             z[i] = ParticlesFilter.normalize_angle(angles[i])
         return z
 
     def bestKParticles(self, K):
+        """
+        Given the particles and their weights, choose the top K particles according to the weights and return them
+        """
         indexes = np.argsort(-self.weights)
         bestK = indexes[:K]
         return self.particles[bestK, :]

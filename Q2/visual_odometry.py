@@ -16,10 +16,6 @@ class VisualOdometry:
         self.camera_rotation = np.eye(3)
         self.camera_translation = np.zeros((3,1))
 
-        # self.num_of_frames = self.vo_data.N
-        # print(self.vo_data.cam.intrinsics)
-        # print(self.vo_data.cam.extrinsics)
-
     def get_gt_trajectory(self):
         gt_trajectory = np.array([]).reshape(0, 2)
         for curr_gt_pose in self.vo_data.gt_poses:
@@ -38,9 +34,6 @@ class VisualOdometry:
                 prev_img = curr_img
                 prev_gt_pose = curr_gt_pose
                 continue
-
-            # graphs.show_image(curr_img)
-            # graphs.show_graphs()
 
             # feature detection
             key_points_1, descriptors_1 = self.sift.detectAndCompute(prev_img, None)

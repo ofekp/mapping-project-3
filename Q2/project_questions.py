@@ -2,6 +2,7 @@ import os
 from visual_odometry import VisualOdometry
 from data_loader import DataLoader
 import graphs
+import numpy as np
 
 
 class ProjectQuestions:
@@ -13,21 +14,29 @@ class ProjectQuestions:
         self.vo_data = vo_data
 
     def Q2(self):
+        """
+        prepares the data for visual odometry and runs the algorithm we learned in class
+        in this question we find the estimated trajectory by performing monocular visual odometry (single camera)
+        """
         vo_data = DataLoader(self.vo_data)
+        print(vo_data.cam.intrinsics)
+        exit(0)
         vo = VisualOdometry(vo_data)
         gt_trajectory, measured_trajectory, key_points_history = vo.calc_trajectory()
         graphs.plot_trajectory_comparison(gt_trajectory, measured_trajectory)
         graphs.show_graphs("../../../Results/Visual Odometry/", "vo_gt_trajectory_estimated_trajectory")
-        title = "Visual Odometry Predicted Trajectory"
+        title = "Visual Odometry Ground Truth and Predicted Trajectories"
         anim = graphs.build_animation(gt_trajectory, measured_trajectory, key_points_history, vo_data,
-                                      title, "East [meters]", "North [meters]", "Ground truth trajectory",
+                                      title, "x [meters]", "z (optical axis) [meters]", "Ground truth trajectory",
                                       "Estimated trajectory with visual odometry")
         graphs.save_animation(anim, "../../../Results/Visual Odometry/", "vo_animation")
 
-        # # vo_data.make_mp4()
-        # gt_trajectory = vo.get_gt_trajectory()
-        # graphs.plot_gt_trajectory(gt_trajectory)
-        # graphs.show_graphs()
+        # find the max deviation from the ground truth trajectory
+        frames_to_measure = 500
+        diff = gt_trajectory - measured_trajectory
+        max_distance = np.max(np.linalg.norm(diff[:frames_to_measure], axis=1))
+        print(f"The maximum Euclidean distance between the ground truth trajectory and "
+              f"the estimated trajectory in the first [{frames_to_measure}] frames is [{max_distance}] meters")
 
     def run(self):
         self.Q2()

@@ -15,7 +15,7 @@ class DataLoader:
         assert os.path.isfile(poses_path), "poses file does not exists"
         assert os.path.isfile(calib_path), "calib file does not exists"
         assert os.path.isfile(times_path), "times file does not exists"
-        # assert os.path.isdir(img_dir), "images dir does not exists"
+        assert os.path.isdir(img_dir), "images dir does not exists"
 
         P0, Tr = self._load_calib(calib_path)
         self.cam = Camera(P0, Tr)
