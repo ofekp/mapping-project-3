@@ -9,6 +9,9 @@ import os
 
 
 def save_animation(ani, basedir, file_name):
+    """
+    Saves the given animation 'ani' to file with file name 'file_name' in the dir 'basedir'
+    """
     print("Saving animation")
     Writer = animation.writers['ffmpeg']
     writer = Writer(fps=50, metadata=dict(artist='pearlofe'), bitrate=1800)
@@ -18,7 +21,17 @@ def save_animation(ani, basedir, file_name):
 
 def build_animation(gt_x_y_phi, est_x_y_phi, landmarks_x_y, particles_x_y_phi, title, xlabel, ylabel, gt_label, est_label, landmarks_label, particles_label):
     """
-    particles_x_y_phi dim is [num_frames, 3, number_of_particles]
+    Creates the animation with the ground truth trajectory, the estimated trajectory, the landmarks and the particles
+    and their heading.
+
+    Parameters:
+        gt_x_y_phi - dim is [num_frames, 3]
+        est_x_y_phi - dim is [num_frames, 3]
+        landmarks_x_y - dim is [num_landmarks, 2]
+        particles_x_y_phi - dim is [num_frames, number_of_particles, 3]
+        title - graph title
+        xlabel, ylabel - the axes labels of the graph
+        gt_label, est_label, landmarks_label, particles_label - legend labels
     """
     frames = []
 
@@ -34,7 +47,7 @@ def build_animation(gt_x_y_phi, est_x_y_phi, landmarks_x_y, particles_x_y_phi, t
     val3, = plt.plot([], [], 'r:', animated=True, label=est_label)
 
     ax.add_collection(val1)
-    plt.legend()
+    plt.legend(prop={"size": 20}, loc="best")
 
     # expand the particles, we will have a total of num_frames rows, and 3 * num_particles cols
     particles_x_y_phi_expended = np.hstack(particles_x_y_phi.transpose(1, 0, 2))
@@ -58,9 +71,9 @@ def build_animation(gt_x_y_phi, est_x_y_phi, landmarks_x_y, particles_x_y_phi, t
             x_max = c + w
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
-        ax.set_title(title)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
+        ax.set_title(title, fontsize=20)
+        ax.set_xlabel(xlabel, fontsize=20)
+        ax.set_ylabel(ylabel, fontsize=20)
         ax.scatter(landmarks_x_y[:, 0], landmarks_x_y[:, 1], s=80, facecolors='none', edgecolors='b',
                    label=landmarks_label)
         val0.set_data([], [])
@@ -101,20 +114,29 @@ def build_animation(gt_x_y_phi, est_x_y_phi, landmarks_x_y, particles_x_y_phi, t
 
 
 def draw_table(df):
+    """
+    Draw a Pandas datafrmae as a table
+    Parameters:
+        df - Pandsas dataframe
+    """
     fig, ax = plt.subplots()
     ax.set_frame_on(False)
     ax.axis('off')
     t = table(ax, df, loc='center', cellLoc='center', colWidths=[0.08] * len(df.columns))
-    # cellDict = t.get_celld()
-    # for i in range(len(df.columns)):
-    #     cellDict[(0, i)].set_height(.02)
-    #     for j in range(1, len(df) + 1):
-    #         cellDict[(j, i)].set_height(.02)
     t.scale(1, 1)
     t.set_fontsize(25)
 
 
-def draw_pf_frame_with_closes_landmark(trueTrajectory, measured_trajectory, trueLandmarks, particles, pos, closest_landmark, r, phi):
+def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles, title):
+    """
+    Plots the ground truth and estimated trajectories as well as the landmarks, the particles and their heading
+    Parameters:
+        trueTrajectory - dim is [num_frames x 3] or [num_frames x 2] (the heading is not used)
+        measured_trajectory - dim is [num_frames x 3] or [num_frames x 2] (the heading is not used)
+        trueLandmarks - dim is [num_landmarks, 2]
+        particles - dim is [number_of_particles, 3]
+        title - the title of the graph
+    """
     fig, ax = plt.subplots()
     ax.plot(trueTrajectory[:, 0], trueTrajectory[:, 1])
     ax.scatter(trueLandmarks[:, 0], trueLandmarks[:, 1], s=80, facecolors='none', edgecolors='b')
@@ -126,41 +148,7 @@ def draw_pf_frame_with_closes_landmark(trueTrajectory, measured_trajectory, true
         endx = x + heading_line_len * np.cos(particle[2])
         endy = y + heading_line_len * np.sin(particle[2])
         line_segments.append(np.array([[x, y], [endx, endy]]))
-    line_collection = LineCollection(line_segments, color='c', alpha=0.05)
-    ax.scatter(particles[:, 0], particles[:, 1], s=10, facecolors='none', edgecolors='g', alpha=0.2)
-    ax.add_collection(line_collection)
-    ax.plot(measured_trajectory[:, 0], measured_trajectory[:, 1], color='r')
-
-    # mark closest landmark
-    ax.scatter(pos[0], pos[1], s=20, facecolors='none', edgecolors='orange')
-    ax.scatter(closest_landmark[0], closest_landmark[1], s=60, facecolors='none', edgecolors='orange')
-    x = pos[0]
-    y = pos[1]
-    endx = pos[0] + r * np.cos(pos[2] + phi)
-    endy = pos[1] + r * np.sin(pos[2] + phi)
-    ax.plot([x, endx], [y, endy], color='orange', alpha=0.5)
-
-    ax.grid()
-    ax.set_title('Q1 - Ground trues trajectory and landmarks and noisy trajectory')
-    ax.set_aspect('equal', adjustable='box')
-    ax.set_xlabel("X [m]", fontsize=20)
-    ax.set_ylabel("Y [m]", fontsize=20)
-    ax.legend(['Ground Truth', 'Landmarks'], prop={"size": 20}, loc="best")
-
-
-def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles, title):  #, pos, closest_landmark, r, phi):
-    fig, ax = plt.subplots()
-    ax.plot(trueTrajectory[:, 0], trueTrajectory[:, 1])
-    ax.scatter(trueLandmarks[:, 0], trueLandmarks[:, 1], s=80, facecolors='none', edgecolors='b')
-    line_segments = []
-    for particle in particles:
-        x = particle[0]
-        y = particle[1]
-        heading_line_len = 0.5
-        endx = x + heading_line_len * np.cos(particle[2])
-        endy = y + heading_line_len * np.sin(particle[2])
-        line_segments.append(np.array([[x, y], [endx, endy]]))
-    line_collection = LineCollection(line_segments, color='c', alpha=0.05)
+    line_collection = LineCollection(line_segments, color='c', alpha=0.08)
     ax.scatter(particles[:, 0], particles[:, 1], s=10, facecolors='none', edgecolors='g', alpha=0.2)
     ax.add_collection(line_collection)
     ax.plot(measured_trajectory[:, 0], measured_trajectory[:, 1], color='r')
@@ -170,7 +158,7 @@ def draw_pf_frame(trueTrajectory, measured_trajectory, trueLandmarks, particles,
     ax.set_aspect('equal', adjustable='box')
     ax.set_xlabel("X [m]", fontsize=20)
     ax.set_ylabel("Y [m]", fontsize=20)
-    ax.legend(['Ground Truth', 'Landmarks'], prop={"size": 20}, loc="best")
+    ax.legend(['Ground Truth', 'Particle filter estimated trajectory', 'Landmarks', 'Particles and their heading'], prop={"size": 20}, loc="best")
 
 
 def show_graphs(folder=None, file_name=None):

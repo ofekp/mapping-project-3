@@ -9,6 +9,9 @@ import cv2
 
 
 def save_animation(ani, basedir, file_name):
+    """
+    Saves the given animation 'ani' to file with file name 'file_name' in the dir 'basedir'
+    """
     print("Saving animation")
     Writer = animation.writers['ffmpeg']
     writer = Writer(fps=20, metadata=dict(artist='pearlofe'), bitrate=1800)
@@ -17,6 +20,19 @@ def save_animation(ani, basedir, file_name):
 
 
 def build_animation(gt_x_y, est_x_y, key_points_history, vo_data, title, xlabel, ylabel, gt_label, est_label):
+    """
+    Creates the animation with the ground truth trajectory, the estimated trajectory, the landmarks and the particles
+    and their heading.
+
+    Parameters:
+        gt_x_y - dim is [num_frames, 2]
+        est_x_y - dim is [num_frames, 2]
+        key_points_history - list([num_key_points_in_frame, 2]) the list size is num_frames
+        vo_data - the loaded visual odometry data, used to show the images from camera 0
+        title - graph title
+        xlabel, ylabel - the axes labels of the graph
+        gt_label, est_label - legend labels
+    """
     frames = []
 
     fig, (ax1, ax2) = plt.subplots(2, 1)
@@ -91,12 +107,6 @@ def build_animation(gt_x_y, est_x_y, key_points_history, vo_data, title, xlabel,
     return anim
 
 
-def show_image(img):
-    fig, ax = plt.subplots()
-    ax.axis('off')
-    ax.imshow(img, cmap=plt.get_cmap('gray'))
-
-
 def plot_gt_trajectory(gt_trajectory):
     """
     Plots a comparison between the ground trajectory and the predicted one
@@ -116,8 +126,8 @@ def plot_trajectory_comparison(gt_trajectory, measured_trajectory):
     """
     Plots a comparison between the ground trajectory and the predicted one
     Args:
-        enu: ground truth enu data
-        enu_predicted: predicted enu data
+        enu: ground truth trajectory
+        enu_predicted: predicted trajectory with visual odometry
     """
     fig, ax = plt.subplots()
     ax.plot(gt_trajectory[:, 0], gt_trajectory[:, 1], 'b')

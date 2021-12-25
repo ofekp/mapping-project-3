@@ -8,6 +8,11 @@ import graphs
 
 class VisualOdometry:
     def __init__(self, vo_data):
+        """
+        Initialize the VO class with the loaded data vo_data
+        create a sift detector, a bf-matcher
+        lastly, initialize the neutral rotation and translation matrices
+        """
         self.vo_data = vo_data
         self.sift = cv2.SIFT_create()
         self.bf = cv2.BFMatcher()
@@ -16,13 +21,10 @@ class VisualOdometry:
         self.camera_rotation = np.eye(3)
         self.camera_translation = np.zeros((3,1))
 
-    def get_gt_trajectory(self):
-        gt_trajectory = np.array([]).reshape(0, 2)
-        for curr_gt_pose in self.vo_data.gt_poses:
-            gt_trajectory = np.concatenate((gt_trajectory, np.array([[curr_gt_pose[0, 3], curr_gt_pose[2, 3]]])), axis=0)
-        return gt_trajectory
-
     def calc_trajectory(self):
+        """
+        apply the visual odometry algorithm
+        """
         gt_trajectory = np.array([]).reshape(0, 2)
         measured_trajectory = np.array([]).reshape(0, 2)
         key_points_history = []

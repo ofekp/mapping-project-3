@@ -1,9 +1,11 @@
 import numpy as np
-import graphs
 
 
 class ParticlesFilter:
     def __init__(self, worldLandmarks, sigma_r1, sigma_t, sigma_r2, sigma_range, sigma_bearing, numberOfPaticles=1000):
+        """
+        Initialization of the particle filter
+        """
 
         # Initialize parameters
         self.numberOfParticles = numberOfPaticles
@@ -17,28 +19,24 @@ class ParticlesFilter:
         self.sigma_bearing = sigma_bearing
 
         # Initialize particles - x, y, heading, weight (uniform weight for initialization)
-        # self.particles = np.concatenate((np.random.normal(0, np.sqrt(2.0), (self.numberOfParticles, 1)),
-        #                                  np.random.normal(0, np.sqrt(2.0), (self.numberOfParticles, 1)),
-        #                                  ParticlesFilter.normalize_angles_array(np.random.normal(0.1, np.sqrt(0.1), (self.numberOfParticles, 1)))), axis=1)
         self.particles = np.concatenate((np.random.normal(0, 2.0, (self.numberOfParticles, 1)),
                                          np.random.normal(0, 2.0, (self.numberOfParticles, 1)),
                                          ParticlesFilter.normalize_angles_array(np.random.normal(0.1, 0.1, (self.numberOfParticles, 1)))), axis=1)
-        # self.particles = np.concatenate((np.random.normal(0, 0.5, (self.numberOfParticles, 1)),
-        #                                  np.random.normal(0, 0.5, (self.numberOfParticles, 1)),
-        #                                  ParticlesFilter.normalize_angles_array(np.random.normal(0.1, 0.1, (self.numberOfParticles, 1)))), axis=1)
 
-        # self.particles = np.array([[0, 0, 0.1], [0.5, 0.5, 0.3], [1.5, 1.5, 1.3]])
         self.weights = np.ones(self.numberOfParticles) * (1.0 / self.numberOfParticles)
         self.history = np.array((0, 0, 0.1)).reshape(1, 3)
         self.particles_history = np.expand_dims(self.particles.copy(), axis=0)
 
     def apply(self, Zt, Ut):
+        """
+        apply the particle filter on a single step in the sequence
+        Parameters:
+            Zt - the sensor measurement (range, bearing) as seen from the current position of the car
+            Ut - the true odometry control command
+        """
 
         # Motion model based on odometry
         self.motionModel(Ut)
-
-        # graphs.draw_pf_frame(self.true_trajectory, self.history, self.true_landmarks, self.particles)
-        # graphs.show_graphs()
 
         # Observation model
         observations = self.Observation()
@@ -54,15 +52,15 @@ class ParticlesFilter:
         self.particles_history = np.concatenate((self.particles_history, np.expand_dims(self.particles.copy(), axis=0)), axis=0)
 
     def motionModel(self, odometry):
-        # dr1 = odometry['r1']
-        # dt  = odometry['t']
-        # dr2 = odometry['r2']
+        """
+        Apply the odometry motion model to the particles
+        odometry - the true odometry control command
+        the particles will be updated with the true odometry control command
+        in addition, each particle will separately be added with Gaussian noise to its movement
+        """
         dr1 = odometry['r1'] + np.random.normal(0, self.sigma_r1, (self.numberOfParticles, 1))
         dt  = odometry['t']  + np.random.normal(0, self.sigma_t,  (self.numberOfParticles, 1))
         dr2 = odometry['r2'] + np.random.normal(0, self.sigma_r2, (self.numberOfParticles, 1))
-        # dr1 = ParticlesFilter.normalize_angles_array(odometry['r1'] + np.random.normal(0, self.sigma_r1 * np.sqrt(odometry['r1'] ** 2), (self.numberOfParticles, 1)))
-        # dt = odometry['t'] + np.random.normal(0, self.sigma_t * np.sqrt(odometry['t'] ** 2), (self.numberOfParticles, 1))
-        # dr2 = ParticlesFilter.normalize_angles_array(odometry['r2'] + np.random.normal(0, self.sigma_r2 * np.sqrt(odometry['r2'] ** 2), (self.numberOfParticles, 1)))
         theta = self.particles[:, 2].reshape(-1, 1)
         dMotion = np.concatenate((
             dt * np.cos(theta + dr1),
@@ -70,24 +68,6 @@ class ParticlesFilter:
             dr1 + dr2), axis=1)
         self.particles = self.particles + dMotion
         self.particles[:, 2] = ParticlesFilter.normalize_angles_array(self.particles[:, 2])
-        # for i, particle in enumerate(self.particles):
-        #     theta = particle[2]
-        #     # dr1 = ParticlesFilter.normalize_angle(odometry['r1'] + np.random.normal(0, 15.0 * self.sigma_r1 * np.sqrt(odometry['r1'] ** 2)))
-        #     # dt = odometry['t'] + np.random.normal(0, 15.0 * self.sigma_t * np.sqrt(odometry['t'] ** 2))
-        #     # dr2 = ParticlesFilter.normalize_angle(odometry['r2'] + np.random.normal(0, 15.0 * self.sigma_r2 * np.sqrt(odometry['r2'] ** 2)))
-        #     dr1 = ParticlesFilter.normalize_angle(odometry['r1'] + np.random.normal(0, self.sigma_r1))
-        #     dt = odometry['t'] + np.random.normal(0, self.sigma_t)
-        #     dr2 = ParticlesFilter.normalize_angle(odometry['r2'] + np.random.normal(0, self.sigma_r2))
-        #     # dr1 = odometry['r1']
-        #     # dt = odometry['t']
-        #     # dr2 = odometry['r2']
-        #     self.particles[i, 0] += dt * np.cos(theta + dr1)
-        #     self.particles[i, 1] += dt * np.sin(theta + dr1)
-        #     self.particles[i, 2] += dr1 + dr2
-        #     # particle[0] += dt * np.cos(theta + dr1) + np.random.normal(0, self.sigma_t)
-        #     # particle[1] += dt * np.sin(theta + dr1) + np.random.normal(0, self.sigma_t)
-        #     # particle[2] += dr1 + dr2 + np.random.normal(0, self.sigma_r1 + self.sigma_r2)
-        # self.particles[:, 2] = ParticlesFilter.normalize_angles_array(self.particles[:, 2])
 
     def Observation(self):
         """
@@ -110,16 +90,17 @@ class ParticlesFilter:
         return observations
 
     def weightParticles(self, world_measurement, observations):
+        """
+        Update the particle weights according to the normal Mahalanobis distance
+        Parameters:
+            world_measurement - the sensor measurement (range, bearing) as seen from the position of the car
+            observations - the sensor measurement (range, bearing) as seen by every particle
+        """
         cov = np.diag([self.sigma_range ** 2, self.sigma_bearing ** 2])
-        # cov = np.diag([5.0, 0.5])
-        # diff = world_measurement - observations
-        # cov = np.cov(diff.T)
         for i, observation in enumerate(observations):
             d = world_measurement - observation
             d[1] = ParticlesFilter.normalize_angle(d[1])
             self.weights[i] = np.exp(-0.5 * np.dot(d.T, np.dot(np.linalg.inv(cov), d))) / np.sqrt(np.linalg.det(2 * np.pi * cov))
-            # self.weights[i] = np.sqrt(np.dot(np.dot(d.T, np.linalg.pinv(cov)), d))
-        # self.weights = np.max(self.weights) - self.weights
         self.weights += 1.0e-200  # for numerical stability
         self.weights /= sum(self.weights)
 

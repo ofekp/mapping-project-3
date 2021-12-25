@@ -6,7 +6,10 @@ import numpy as np
 
 
 class ProjectQuestions:
-    def __init__(self,vo_data):
+    def __init__(self, vo_data):
+        """
+        Initialization of Q2 with the loaded data
+        """
         assert type(vo_data) is dict, "vo_data should be a dictionary"
         assert all([val in list(vo_data.keys()) for val in ['sequence', 'dir']]), "vo_data must contain keys: ['sequence', 'dir']"
         assert type(vo_data['sequence']) is int and (0 <= vo_data['sequence'] <= 10), "sequence must be an integer value between 0-10"
@@ -19,8 +22,6 @@ class ProjectQuestions:
         in this question we find the estimated trajectory by performing monocular visual odometry (single camera)
         """
         vo_data = DataLoader(self.vo_data)
-        print(vo_data.cam.intrinsics)
-        exit(0)
         vo = VisualOdometry(vo_data)
         gt_trajectory, measured_trajectory, key_points_history = vo.calc_trajectory()
         graphs.plot_trajectory_comparison(gt_trajectory, measured_trajectory)
@@ -39,5 +40,8 @@ class ProjectQuestions:
               f"the estimated trajectory in the first [{frames_to_measure}] frames is [{max_distance}] meters")
 
     def run(self):
+        """
+        run Q2
+        """
         self.Q2()
     

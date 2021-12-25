@@ -7,9 +7,7 @@ import graphs
 import itertools
 import pandas as pd
 
-# np.random.seed(12345)
-# np.random.seed(17)
-np.random.seed(11)
+np.random.seed(19)
 
 
 def calculate_mse(X_Y_GT, X_Y_est, start_frame=50):
@@ -29,6 +27,7 @@ def calculate_mse(X_Y_GT, X_Y_est, start_frame=50):
     e_y = e_y[start_frame:]
     MSE = np.sqrt((1 / (e_x.shape[0] - start_frame)) * (np.dot(e_x, e_x.T) + np.dot(e_y, e_y.T)))
     return float(MSE)
+
 
 def main():
     """
@@ -101,12 +100,19 @@ def main():
                                columns=num_particles_arr, index=[str(s) for s in add_sensor_noise_arr])
     for add_sensor_noise, num_particles in itertools.product(add_sensor_noise_arr, num_particles_arr):
         pf = ParticlesFilter(trueLandmarks, sigma_r1, sigma_t, sigma_r2, sigma_range, sigma_bearing, numberOfPaticles=num_particles)
+        if num_particles == 1000 and add_sensor_noise:
+            # just to show the initial distribution of particles
+            graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles,
+                                 "Ground truth trajectory and landmarks, showing the initial distribution of 1000 particles")
+            graphs.show_graphs("../../../Results/Particle Filter/",
+                               "pf_gt_trajectory_landmarks_1000_particles_initial_particle_distribution")
         for i, timestamp in enumerate(range(trueOdometry.__len__() - 1)):
             # calculate Zt - the range and bearing to the closest landmark as seen from the current true position of the robot
-            if i == 0 and num_particles == 1000 and add_sensor_noise:
-                # just to show the initial distribution of particles
-                graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles, "Ground truth trajectory and landmarks, showing the initial distribution of 1000 particles")
-                graphs.show_graphs("../../../Results/Particle Filter/", "pf_gt_trajectory_landmarks_1000_particles_initial_particle_distribution")
+            if num_particles == 1000 and add_sensor_noise and i < 10:
+                graphs.draw_pf_frame(trueTrajectory, pf.history, trueLandmarks, pf.particles,
+                                     "Animation Breakdown - Ground truth and estimated trajectory, landmarks and the particles and their headings")
+                graphs.show_graphs("../../../Results/Particle Filter/",
+                                   "pf_gt_trajectory_landmarks_animation_breakdown_frame_{}".format(i))
             closest_landmark_id = np.argmin(np.linalg.norm((trueLandmarks - trueTrajectory[i + 1, 0:2]), axis=1))
             dist_xy = trueLandmarks[closest_landmark_id] - trueTrajectory[i + 1, 0:2]
             r = np.linalg.norm(dist_xy)
